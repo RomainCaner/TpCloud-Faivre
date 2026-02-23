@@ -1,0 +1,74 @@
+Début du compte rendu, j'ai commencé d'abord par chercher Terraform sur internet : à quoi ça sert et pourquoi l'utiliser. 
+
+Terraform est un outil d'Infrastructure as Code (IaC) qui permet de définir, provisionner et gérer des infrastructures informatiques de façon automatisée, déclarative et reproductible. Il est utilisé pour créer et gérer des ressources sur différents fournisseurs cloud (comme AWS, Azure, Google Cloud), mais aussi des infrastructures on-premise.
+
+Son principal avantage est de pouvoir versionner l’infrastructure (comme du code) et d’automatiser le déploiement, ce qui améliore la cohérence, la reproductibilité, et facilite le travail collaboratif.
+
+Avant de commencer la manipulation, j’ai donc pris le temps de comprendre les concepts de base (providers, ressources, fichiers de configuration .tf, etc.) pour mieux appréhender les étapes suivantes.
+
+Voir image.png
+
+Ensuite je suis allé voir les ressources a disposition donc la formation :https://formation.afaivre.fr/terraform-azure
+
+Apres avoir créer mes compte et réalisé mes instalations je vais donc approfondir 
+
+---
+
+## Construction des fichiers Terraform
+
+Pour structurer le projet, je me suis appuyé sur les conventions recommandées par HashiCorp et par le cours du TP. Chaque fichier a une responsabilité unique, ce qui rend le projet lisible et maintenable.
+
+### versions.tf
+Ce fichier fixe les versions minimales requises pour que le projet soit reproductible sur n'importe quelle machine. J'ai utilisé la contrainte `~> 3.0` pour le provider azurerm, ce qui signifie "toute version 3.x mais pas 4.0". Cela évite les breaking changes tout en autorisant les mises à jour mineures.
+
+Source : https://developer.hashicorp.com/terraform/language/settings
+
+### provider.tf
+Ce fichier configure la connexion à Azure. J'ai opté pour l'authentification via Azure CLI (`az login`), qui est la méthode recommandée pour le développement local. Le bloc `features {}` est obligatoire pour le provider azurerm même s'il est vide.
+
+Source : https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/guides/azure_cli
+
+### variables.tf
+Toutes les valeurs configurables (région, taille de VM, identifiants) sont centralisées ici. Cela évite de dupliquer les valeurs dans main.tf et facilite les modifications. J'ai choisi la taille Standard_B1ls car c'est la plus petite VM disponible sur Azure (1 vCPU / 0.5 Go RAM), visible dans le portail Azure lors de la sélection de taille de machine virtuelle.
+
+Source : https://azure.microsoft.com/fr-fr/pricing/details/virtual-machines/linux/
+
+### main.tf
+C'est le fichier principal. Les ressources sont déclarées dans l'ordre logique suivant :
+
+1. Resource Group — conteneur obligatoire pour toutes les ressources Azure
+   Source : https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/resource_group
+
+2. Virtual Network + Subnet — réseau privé isolé pour les VMs
+   Source : https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/virtual_network
+
+3. Network Security Group — pare-feu autorisant SSH (port 22) et HTTP (port 80)
+   Source : https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/network_security_group
+
+4. Load Balancer (SKU Standard) avec :
+   - Un Backend Pool : liste des VMs qui reçoivent le trafic
+   - Un Health Probe : sonde qui vérifie que les VMs répondent sur le port 80
+   - Une LB Rule : règle qui redirige le trafic entrant port 80 vers les VMs
+   Source : https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/lb
+
+5. Interfaces réseau (NICs) associées au Backend Pool du Load Balancer
+   Source : https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/network_interface_backend_address_pool_association
+
+6. 2 Machines Virtuelles Linux (Ubuntu 22.04 LTS) avec le paramètre count = 2 pour éviter la duplication de code
+   Source : https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/linux_virtual_machine
+
+Terraform gère automatiquement l'ordre de création grâce aux références entre ressources (ex: azurerm_resource_group.rg.name). C'est ce qu'on appelle le graphe de dépendances.
+
+### outputs.tf
+Ce fichier expose les informations utiles après le déploiement : l'IP publique du Load Balancer, les IPs des VMs, et les commandes SSH prêtes à l'emploi. Ces valeurs sont accessibles à tout moment via la commande `terraform output`.
+
+Source : https://developer.hashicorp.com/terraform/language/values/outputs
+
+---
+
+## Sources principales utilisées
+
+- Documentation officielle Terraform (HashiCorp) : https://developer.hashicorp.com/terraform/docs
+- Registry du provider azurerm : https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs
+- Documentation Microsoft Azure (tailles de VMs) : https://learn.microsoft.com/fr-fr/azure/virtual-machines/sizes
+- Cours du TP : https://formation.afaivre.fr/terraform-azure

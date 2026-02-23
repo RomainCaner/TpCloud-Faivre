@@ -1,0 +1,12 @@
+# Dossier des providers Terraform (binaires trop lourds pour GitHub)
+.terraform/
+
+# Fichier d'état Terraform (contient des données sensibles)
+*.tfstate
+*.tfstate.backup
+
+# Fichier de variables sensibles
+*.tfvars
+
+# Clé SSH privée (ne JAMAIS commiter)
+SSH.txt
