@@ -20,28 +20,16 @@ Internet
    │
    ▼
 ┌─────────────────────────────┐
-│  Load Balancer (Standard)   │  ← IP publique : 51.107.83.52
+│  Load Balancer (Standard)   │
 │  tp-azure-lb                │
 └────────────┬────────────────┘
              │ répartit le trafic HTTP (port 80)
     ┌────────┴────────┐
     ▼                 ▼
 ┌────────┐       ┌────────┐
-│  VM-1  │       │  VM-2  │    ← Ubuntu 22.04 LTS / Standard_B1s
-│ Nginx  │       │ Nginx  │    ← Pas d'IP publique directe
+│  VM-1  │       │  VM-2  │
+│ Nginx  │       │ Nginx  │
 └────────┘       └────────┘
-    │                 │
-    └────────┬────────┘
-             ▼
-    ┌─────────────────┐
-    │  Subnet         │  10.0.1.0/24
-    │  tp-azure-vnet  │  10.0.0.0/16
-    │  NSG            │  SSH(22) + HTTP(80) autorisés
-    └─────────────────┘
-             │
-    ┌─────────────────┐
-    │  Resource Group │  tp-azure-rg — France Central
-    └─────────────────┘
 ```
 
 ---
@@ -156,17 +144,17 @@ En accédant à `http://51.107.83.52` plusieurs fois, le Load Balancer distribue
 | Ressource | Nom | Rôle |
 |---|---|---|
 | `azurerm_resource_group` | `tp-azure-rg` | Conteneur de toutes les ressources |
-| `azurerm_virtual_network` | `tp-azure-vnet` | Réseau privé `10.0.0.0/16` |
-| `azurerm_subnet` | `tp-azure-subnet` | Sous-réseau `10.0.1.0/24` |
-| `azurerm_network_security_group` | `tp-azure-nsg` | Pare-feu : SSH(22), HTTP(80), deny-all |
+| `azurerm_virtual_network` | `tp-azure-vnet` | Réseau virtuel |
+| `azurerm_subnet` | `tp-azure-subnet` | Sous-réseau des VMs |
+| `azurerm_network_security_group` | `tp-azure-nsg` | Pare-feu |
 | `azurerm_public_ip` | `tp-azure-lb-pip` | IP publique du Load Balancer |
 | `azurerm_lb` | `tp-azure-lb` | Load Balancer Standard |
 | `azurerm_lb_backend_address_pool` | `tp-azure-backend-pool` | Groupe des VMs cibles |
-| `azurerm_lb_probe` | `tp-azure-http-probe` | Sonde HTTP sur `/` port 80 |
-| `azurerm_lb_rule` | `tp-azure-http-rule` | Règle : port 80 → VMs |
-| `azurerm_network_interface` x2 | `tp-azure-nic-1/2` | Cartes réseau des VMs (sans IP publique) |
+| `azurerm_lb_probe` | `tp-azure-http-probe` | Sonde de santé HTTP |
+| `azurerm_lb_rule` | `tp-azure-http-rule` | Règle de répartition de charge |
+| `azurerm_network_interface` x2 | `tp-azure-nic-1/2` | Cartes réseau des VMs |
 | `azurerm_network_interface_backend_address_pool_association` x2 | — | Association NIC → Backend Pool |
-| `azurerm_linux_virtual_machine` x2 | `tp-azure-vm-1/2` | VMs Ubuntu 22.04 LTS, Standard_B1s |
+| `azurerm_linux_virtual_machine` x2 | `tp-azure-vm-1/2` | VMs Ubuntu 22.04 LTS |
 
 ---
 
